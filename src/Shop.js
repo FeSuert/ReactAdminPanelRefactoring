@@ -1,60 +1,82 @@
-import React, { useState } from "react";
-import Item from "./Item.js";
-import ItemList from "./ItemList.js";
-import AddItem from "./AddItem.js";
+import React, { useState, useEffect } from "react";
+import ItemsList from "./ItemsList";
+import AddItem from "./AddItem";
+import uuid from "react-uuid";
 
 export default function Shop() {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(() => {
+    const i = JSON.parse(localStorage.getItem("items"));
+    if (!i) {
+      return [];
+    }
+    return i;
+  });
+  //const [items, setItems] = useState([]);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
+  const [valid, setValid] = useState("");
 
-  const addNewItem = (e) => {
-    e.preventDefault();
-    const newItem = { id: Date.now(), name, desc };
-    setItems([...items, newItem]);
+  function handleFormSubmit(event) {
+    event.preventDefault();
+
+    if (!name) {
+      setValid("Введите название");
+      return;
+    }
+    if (!desc) {
+      setValid("Введите описание ");
+      return;
+    }
+    setItems([
+      ...items,
+      {
+        id: uuid(name),
+        name: name,
+        desc: desc
+      }
+    ]);
     setName("");
     setDesc("");
-  };
-  const delThisElem = (item) => {
-    setItems(items.filter((i) => i.id !== item.id));
-  };
-  const isEmpty = items.length;
+    setValid("");
+  }
 
+  function handleNameChange(event) {
+    setName(event.target.value);
+  }
+
+  function handleDescChange(event) {
+    setDesc(event.target.value);
+  }
+
+  function handleDeleteClick(id) {
+    setItems(items.filter((item) => item.id !== id));
+  }
+  useEffect(() => {
+    localStorage.setItem("items", JSON.stringify(items));
+    const amount = Object.keys(items).length;
+    if (!amount) {
+      document.title = "Товары отсутствуют";
+      console.log(document.title);
+    } else if (amount === 1) {
+      document.title = "Товар присутствует";
+      console.log(document.title);
+    } else {
+      document.title = amount + " товара присутствует";
+      console.log(document.title);
+    }
+  }, [items]);
   return (
-    <>
-      {/* <form>
-        <div>
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            type="text"
-            placeholder="Product Name"
-            className="ui-textfield"
-          />
-        </div>
-        <div>
-          <input
-            value={desc}
-            onChange={(event) => setDesc(event.target.value)}
-            type="text"
-            placeholder="Product Description"
-            className="ui-textfield"
-          />
-        </div>
-        <div className="form-footer">
-          <div className="validation"></div>
-          <input
-            onClick={addNewItem}
-            disabled={desc === "" || name === ""}
-            type="submit"
-            className="ui-button"
-            value="Add"
-          />
-        </div>
-      </form> */}
-      <AddItem desc={desc} name={name} onClick={addNewItem} setName={setName} setDesc={setDesc}/>
-      <div>{isEmpty || <p className="ui-title">Add first Product</p>}</div>
-      <ItemList items={items} onClick={delThisElem}/>
-    </>
+    <div className="text-4xl text-center">
+      <AddItem
+        name={name}
+        desc={desc}
+        valid={valid}
+        onNameChange={handleNameChange}
+        onDescChange={handleDescChange}
+        onFormSubmit={handleFormSubmit}
+      />
+      <div >{items.length === 0 && <p className="text-[#00df9a]">Добавьте первый товар</p>}</div>
+      <ItemsList items={items} onDeleteClick={handleDeleteClick} />
+    </div>
   );
 }
